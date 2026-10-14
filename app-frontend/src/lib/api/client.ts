@@ -231,11 +231,20 @@ async function handleErrorResponse(
   try {
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      const errorData = (await response.json()) as DefaultResponse;
+      const errorData = (await response.json()) as Partial<DefaultResponse> & {
+        message?: unknown;
+      };
 
       if (errorData.Messages && errorData.Messages.length > 0) {
         errorMessages = errorData.Messages;
         defaultMessage = errorMessages[0];
+      } else if (
+        typeof errorData.message === 'string' &&
+        errorData.message.length > 0
+      ) {
+        // .NET API ErrorResponse shape: { message }
+        errorMessages = [errorData.message];
+        defaultMessage = errorData.message;
       } else if (errorData.MessageType) {
         defaultMessage = `${errorData.MessageType}: ${defaultMessage}`;
       }

@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: TransactionImportApi
+  version: 1.0.0
+  description: |
+    REST API for the Transaction Import and Approval app.
+
+    Authentication uses a server-side session carried in an HTTP-only cookie
+    named `session` (SameSite=Lax). The cookie is issued by `POST /api/auth/login`
+    and must be sent with every authenticated request.
+servers:
+  - url: http://localhost:8042
+    description: Local development
+tags:
+  - name: Auth
+    description: Sign in, sign out and the signed-in person.
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      operationId: Login
+      summary: Sign in with email and password.
+      description: |
+        On success a new server-side session is created and its opaque token is set in
+        the HTTP-only `session` cookie. A wrong email or a wrong password both return
+        401 with the message "Invalid email or password". Email matching is case-insensitive.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Signed in. The `session` cookie is set.
+          headers:
+            Set-Cookie:
+              description: HTTP-only, SameSite=Lax session cookie.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '400':
+          description: Email or password is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid email or password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      operationId: GetCurrentUser
+      summary: Get the signed-in person.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The signed-in person.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '401':
+          description: No valid session.
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: Logout
+      summary: Sign out.
+      description: |
+        Ends the session identified by the `session` cookie (if any) and clears the cookie.
+        Always succeeds, so it is safe to call when already signed out.
+      security: []
+      responses:
+        '204':
+          description: Signed out. The `session` cookie is cleared.
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          minLength: 1
+          example: fileimporter@digiata.com
+        password:
+          type: string
+          minLength: 1
+          format: password
+    CurrentUser:
+      type: object
+      required: [name, email, role]
+      properties:
+        name:
+          type: string
+          example: File Importer
+        email:
+          type: string
+          example: fileimporter@digiata.com
+        role:
+          $ref: '#/components/schemas/Role'
+    Role:
+      type: string
+      enum: [Importer, Approver]
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Invalid email or password

@@ -6,12 +6,13 @@
  */
 
 /**
- * API base URL - Retrieved from environment variable
- * Set NEXT_PUBLIC_API_BASE_URL in your .env.local file
- * Default: http://localhost:8042 (adjust as needed)
+ * API base URL prefixed to every apiClient endpoint.
+ * Default: '' — the browser calls same-origin /api/* paths, which the Next.js
+ * rewrite in next.config.ts proxies to the .NET API (API_PROXY_TARGET). Keep it
+ * empty so the HTTP-only session cookie stays first-party; only set
+ * NEXT_PUBLIC_API_BASE_URL to bypass the proxy deliberately.
  */
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8042';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 /**
  * Default pagination settings
