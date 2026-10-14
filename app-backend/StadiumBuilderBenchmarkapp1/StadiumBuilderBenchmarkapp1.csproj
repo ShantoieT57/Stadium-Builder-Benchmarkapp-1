@@ -8,12 +8,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.89" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
     <PackageReference Include="NSwag.MSBuild" Version="14.7.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.3.0" />
     <PackageReference Include="Twenty57.Builder.ApplicationRuntime.Sdk" Version="0.0.1-pre.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Database\Migrations\*.sql" />
+    <EmbeddedResource Include="..\docs\TransactionImportApi.yaml" LogicalName="TransactionImportApi.yaml" />
   </ItemGroup>
 
   <ItemGroup>

@@ -101,3 +101,8 @@ artifacts/
 launchSettings.json
 *.user
 *.feature.cs
+
+# Local SQLite database files created when the backend runs
+*.db
+*.db-shm
+*.db-wal

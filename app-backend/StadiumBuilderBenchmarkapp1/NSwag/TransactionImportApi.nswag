@@ -1,0 +1,35 @@
+{
+  "runtime": "Net100",
+  "defaultVariables": null,
+  "documentGenerator": {
+    "fromDocument": {
+      "json": "../../docs/TransactionImportApi.yaml",
+      "newLineBehavior": "Auto"
+    }
+  },
+  "codeGenerators": {
+    "openApiToCSharpController": {
+      "controllerStyle": "Abstract",
+      "controllerTarget": "AspNetCore",
+      "useActionResultType": true,
+      "useCancellationToken": true,
+      "generateModelValidationAttributes": true,
+      "routeNamingStrategy": "OperationId",
+      "namespace": "StadiumBuilderBenchmarkapp1.Services.TransactionImportApi",
+      "modelsNamespace": "StadiumBuilderBenchmarkapp1.Services.TransactionImportApi",
+      "additionalNamespaceUsages": [],
+      "additionalContractNamespaceUsages": [],
+      "generateOptionalParameters": true,
+      "generateNullableReferenceTypes": true,
+      "requiredPropertiesMustBeDefined": true,
+      "classStyle": "Poco",
+      "jsonLibrary": "SystemTextJson",
+      "dateType": "System.DateTimeOffset",
+      "dateTimeType": "System.DateTimeOffset",
+      "anyType": "object",
+      "arrayType": "System.Collections.Generic.ICollection",
+      "dictionaryType": "System.Collections.Generic.IDictionary",
+      "output": "../Services/TransactionImportApi/Controller.g.cs"
+    }
+  }
+}
