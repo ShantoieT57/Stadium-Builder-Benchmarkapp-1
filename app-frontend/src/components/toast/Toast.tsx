@@ -3,24 +3,15 @@
 /**
  * Toast - Individual toast notification component
  * Provides feedback for operations with success, error, info, and warning variants
- * Auto-dismisses after specified duration and supports manual dismissal
+ * Supports manual dismissal. Auto-dismiss timing is owned by ToastProvider
+ * (one timer per toast), so this component starts no timers of its own.
  */
 
-import { useEffect } from 'react';
+import { X } from 'lucide-react';
+import { IconButton } from '@/components/ui/icon-button';
 import { ToastProps } from '@/types/toast';
 
 export function Toast({ toast, onDismiss }: ToastProps) {
-  // Auto-dismiss after duration
-  useEffect(() => {
-    if (toast.duration && toast.duration > 0) {
-      const timer = setTimeout(() => {
-        onDismiss(toast.id);
-      }, toast.duration);
-
-      return () => clearTimeout(timer);
-    }
-  }, [toast.id, toast.duration, onDismiss]);
-
   // Icon component based on variant
   const getIcon = () => {
     switch (toast.variant) {
@@ -142,25 +133,18 @@ export function Toast({ toast, onDismiss }: ToastProps) {
         )}
       </div>
 
-      {/* Dismiss Button */}
+      {/* Dismiss Button — icon-only, so its label shows on hover/focus (GN-03) */}
       {toast.dismissible !== false && (
-        <button
+        <IconButton
+          label="Dismiss notification"
+          icon={<X aria-hidden />}
+          size="icon-sm"
+          className="flex-shrink-0 text-gray-400 hover:text-gray-600"
           onClick={(e) => {
             e.stopPropagation();
             onDismiss(toast.id);
           }}
-          className="text-gray-400 hover:text-gray-600 flex-shrink-0 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 rounded"
-          aria-label="Dismiss notification"
-        >
-          <svg
-            className="w-5 h-5"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-          </svg>
-        </button>
+        />
       )}
     </div>
   );

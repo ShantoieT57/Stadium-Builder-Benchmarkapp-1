@@ -120,8 +120,9 @@ describe('Epic auth-and-app-shell, Story 5: on-screen messages', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
     // Reached with the keyboard: the label appears on focus.
+    // Start keyboard navigation from the page body (clicking "Raise problem" left focus there).
     act(() => {
-      closeButton.blur();
+      (document.activeElement as HTMLElement | null)?.blur();
     });
     // Tab order: "Raise success", "Raise problem", then the message's close button.
     await user.tab();

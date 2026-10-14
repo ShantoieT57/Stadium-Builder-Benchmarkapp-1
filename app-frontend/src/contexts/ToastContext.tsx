@@ -81,7 +81,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         variant: options.variant,
         title: options.title,
         message: options.message,
-        duration: options.duration ?? TOAST_DEFAULTS.DURATION,
+        duration:
+          options.duration ??
+          TOAST_DEFAULTS.DURATION_BY_VARIANT[options.variant],
         dismissible: options.dismissible ?? TOAST_DEFAULTS.DISMISSIBLE,
         onClick: options.onClick,
       };

@@ -13,6 +13,7 @@
  * 3. Customize error handling and logging as needed
  */
 
+import { reportApiResponse } from '@/lib/auth/session-events';
 import { API_BASE_URL } from '@/lib/utils/constants';
 import type {
   APIError,
@@ -66,6 +67,9 @@ export async function apiClient<T = unknown>(
 
     // Log response in development
     logResponse(response);
+
+    // Let the signed-in frame track idle time and session loss (BR3).
+    reportApiResponse(response.status);
 
     // Handle specific error status codes
     if (!response.ok) {

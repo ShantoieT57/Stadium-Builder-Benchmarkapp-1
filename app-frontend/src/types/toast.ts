@@ -16,7 +16,7 @@ export interface Toast {
   variant: ToastVariant;
   title: string;
   message?: string;
-  duration?: number; // Duration in milliseconds (default: 5000)
+  duration?: number; // Milliseconds before auto-dismiss; 0 = stays until dismissed (default: by variant, see TOAST_DEFAULTS.DURATION_BY_VARIANT)
   dismissible?: boolean; // Whether user can manually dismiss (default: true)
   onClick?: () => void; // Optional click handler for interactive toasts
 }
@@ -72,7 +72,18 @@ export interface ToastContainerProps {
  * Default toast configuration values
  */
 export const TOAST_DEFAULTS = {
-  DURATION: 5000, // 5 seconds
+  DURATION: 5000, // 5 seconds — auto-dismiss time for messages that fade
+  /**
+   * Default duration per variant when showToast gets no `duration`.
+   * Success/info fade after a few seconds; problems (error/warning) stay
+   * until the person dismisses them or the problem is resolved (0 = no auto-dismiss).
+   */
+  DURATION_BY_VARIANT: {
+    success: 5000,
+    info: 5000,
+    warning: 0,
+    error: 0,
+  } satisfies Record<ToastVariant, number>,
   MAX_TOASTS: 3,
   POSITION: 'top-right' as const,
   DISMISSIBLE: true,

@@ -1,7 +1,8 @@
 'use client';
 
-import { useId, useState, type FormEvent } from 'react';
+import { Suspense, useId, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { SignedOutNotice } from '@/components/auth/SignedOutNotice';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -127,6 +128,11 @@ export default function SignInPage() {
             onSubmit={handleSubmit}
             className="flex flex-col gap-4"
           >
+            {/* Reads the URL's query, so it renders on the client only. */}
+            <Suspense fallback={null}>
+              <SignedOutNotice />
+            </Suspense>
+
             {formError && (
               <div
                 role="alert"

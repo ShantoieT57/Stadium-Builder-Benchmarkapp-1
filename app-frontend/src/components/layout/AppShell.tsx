@@ -4,17 +4,24 @@ import {
   useEffect,
   useEffectEvent,
   useId,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
+import { NoAccess } from '@/components/auth/NoAccess';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
 import { useToast } from '@/contexts/ToastContext';
 import { getCurrentUser, logout } from '@/lib/api/endpoints';
 import { canAccessRoute, isRouteActive, navItemsFor } from '@/lib/auth/roles';
+import {
+  onSessionEvent,
+  SESSION_IDLE_TIMEOUT_MS,
+  SIGNED_OUT_SIGN_IN_ROUTE,
+} from '@/lib/auth/session-events';
 import { cn } from '@/lib/utils';
 import type { CurrentUser } from '@/types/api-generated';
 
@@ -39,6 +46,11 @@ type SessionState =
  * session (GET /api/auth/me) on mount and on each in-app navigation, shows who
  * is signed in, the role-based main menu (BR1) and Sign Out. With no session the
  * person is sent to /sign-in and no protected content is rendered.
+ *
+ * Session loss (BR3): a 401 from any API call after the person was signed in
+ * (idle timeout or a newer sign-in elsewhere) sends them to sign-in with a
+ * "signed out" message. Only successful requests restart the 60-minute idle
+ * timer; when it runs out the person is sent to sign-in without a click.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -55,11 +67,48 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [signingOut, setSigningOut] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
-  const sendToSignIn = () => {
+  // Whether this frame has seen a valid session: a later 401 means the session
+  // ended (not that the person never signed in).
+  const wasSignedIn = useRef(false);
+  const leaving = useRef(false);
+  const signingOutRef = useRef(false);
+
+  const sendToSignIn = (sessionEnded = false) => {
+    if (leaving.current) return;
+    leaving.current = true;
     setSession({ status: 'checking' });
-    router.replace(SIGN_IN_ROUTE);
+    router.replace(sessionEnded ? SIGNED_OUT_SIGN_IN_ROUTE : SIGN_IN_ROUTE);
   };
-  const onSessionMissing = useEffectEvent(sendToSignIn);
+  const onSessionMissing = useEffectEvent(() =>
+    sendToSignIn(wasSignedIn.current),
+  );
+  const onIdleTimeout = useEffectEvent(() => sendToSignIn(true));
+  const onUnauthorized = useEffectEvent(() => {
+    if (wasSignedIn.current && !signingOutRef.current) sendToSignIn(true);
+  });
+
+  // Every API response is seen here: a success restarts the 60-minute idle
+  // timer, a 401 ends the session. Mouse/keyboard input deliberately does not
+  // count as activity (BR3, resolved design choice).
+  useEffect(() => {
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearIdleTimer = () => {
+      if (idleTimer !== null) clearTimeout(idleTimer);
+      idleTimer = null;
+    };
+    const unsubscribe = onSessionEvent((event) => {
+      if (event === 'activity') {
+        clearIdleTimer();
+        idleTimer = setTimeout(() => onIdleTimeout(), SESSION_IDLE_TIMEOUT_MS);
+      } else {
+        onUnauthorized();
+      }
+    });
+    return () => {
+      unsubscribe();
+      clearIdleTimer();
+    };
+  }, []);
 
   // Re-verify the session on every screen change (and on retry). The previous
   // person stays on screen while the check runs; a 401 clears it immediately.
@@ -67,7 +116,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     let cancelled = false;
     getCurrentUser()
       .then((user) => {
-        if (!cancelled) setSession({ status: 'signed-in', user });
+        if (cancelled) return;
+        wasSignedIn.current = true;
+        setSession({ status: 'signed-in', user });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -87,6 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onPageShow = (event: PageTransitionEvent) => {
       if (event.persisted) {
+        leaving.current = false;
         setSession({ status: 'checking' });
         setAttempt((n) => n + 1);
       }
@@ -108,11 +160,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const handleSignOut = async () => {
     if (signingOut) return;
     setSigningOut(true);
+    signingOutRef.current = true;
     try {
       await logout();
     } catch (error) {
       // 401: already signed out — carry on to sign-in.
       if (statusCodeOf(error) !== 401) {
+        signingOutRef.current = false;
         setSigningOut(false);
         showToast({
           variant: 'error',
@@ -224,14 +278,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main id="main-content" className="flex-1">
-        {allowed ? (
-          children
-        ) : (
-          // Seam for role-restricted screens: the no-access screen replaces this.
-          <div className="mx-auto w-full max-w-7xl px-4 py-8">
-            <p>You don&apos;t have access to this screen.</p>
-          </div>
-        )}
+        {allowed ? children : <NoAccess />}
       </main>
     </div>
   );
