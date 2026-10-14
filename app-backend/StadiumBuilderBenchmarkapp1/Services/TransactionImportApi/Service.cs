@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using StadiumBuilderBenchmarkapp1.Database;
 using StadiumBuilderBenchmarkapp1.Security;
@@ -77,6 +78,7 @@ public sealed class Service(AppSettings settings, IHostEnvironment environment, 
         services.AddSingleton<SessionRepository>();
         services.AddSingleton<SessionStore>();
         services.AddSingleton<PasswordHasher>();
+        services.AddSingleton<SessionCookie>();
 
         // Only this service's controllers, regardless of which assembly is the entry point.
         services.AddControllers().ConfigureApplicationPartManager(parts =>
@@ -100,6 +102,11 @@ public sealed class Service(AppSettings settings, IHostEnvironment environment, 
         {
             app.UsePathBase(pathBase);
         }
+
+        // Take the original scheme (X-Forwarded-Proto) from a reverse proxy such as the
+        // front-end's /api rewrite, so Request.IsHttps reflects what the browser used. Only
+        // the default known proxies (loopback addresses) are trusted to set it.
+        app.UseForwardedHeaders(new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedProto });
 
         if (app.Environment.IsDevelopment())
         {

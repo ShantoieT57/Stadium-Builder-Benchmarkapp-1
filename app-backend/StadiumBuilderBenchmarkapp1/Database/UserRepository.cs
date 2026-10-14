@@ -15,13 +15,6 @@ public sealed class UserRepository(DbConnectionFactory connectionFactory)
             $"{SelectUser} WHERE Email = @email COLLATE NOCASE", new { email }).ConfigureAwait(false);
     }
 
-    public async Task<User?> FindByIdAsync(long id, CancellationToken cancellationToken)
-    {
-        await using var connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
-        return await connection.QuerySingleOrDefaultAsync<User>(
-            $"{SelectUser} WHERE Id = @id", new { id }).ConfigureAwait(false);
-    }
-
     /// <summary>Inserts the user unless one with the same email already exists. Returns true when inserted.</summary>
     public async Task<bool> InsertIfMissingAsync(string name, string email, string passwordHash, string role, CancellationToken cancellationToken)
     {

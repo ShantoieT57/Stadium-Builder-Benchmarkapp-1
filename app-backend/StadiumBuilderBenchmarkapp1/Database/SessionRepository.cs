@@ -46,18 +46,38 @@ public sealed class SessionRepository(DbConnectionFactory connectionFactory)
             : new SessionRecord(row.TokenHash, row.UserId, Parse(row.CreatedAt), Parse(row.LastActivityAt));
     }
 
-    public async Task DeleteAsync(string tokenHash, CancellationToken cancellationToken)
+    /// <summary>
+    /// Uses the session identified by <paramref name="tokenHash"/>, on a single connection:
+    /// looks it up together with its owner; when it has been idle for longer than
+    /// <paramref name="idleTimeout"/> it is deleted and null is returned, otherwise its last
+    /// activity is set to <paramref name="now"/> and the owner is returned.
+    /// Returns null when there is no such session.
+    /// </summary>
+    public async Task<User?> UseAsync(string tokenHash, DateTimeOffset now, TimeSpan idleTimeout, CancellationToken cancellationToken)
     {
         await using var connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
-        await connection.ExecuteAsync("DELETE FROM Sessions WHERE TokenHash = @tokenHash", new { tokenHash }).ConfigureAwait(false);
-    }
+        var row = await connection.QuerySingleOrDefaultAsync<ActiveSessionRow>("""
+            SELECT s.LastActivityAt, u.Id, u.Name, u.Email, u.PasswordHash, u.Role
+            FROM Sessions s
+            JOIN Users u ON u.Id = s.UserId
+            WHERE s.TokenHash = @tokenHash
+            """,
+            new { tokenHash }).ConfigureAwait(false);
+        if (row is null)
+        {
+            return null;
+        }
 
-    public async Task UpdateLastActivityAsync(string tokenHash, DateTimeOffset lastActivityAt, CancellationToken cancellationToken)
-    {
-        await using var connection = await connectionFactory.OpenAsync(cancellationToken).ConfigureAwait(false);
+        if (now - Parse(row.LastActivityAt) > idleTimeout)
+        {
+            await connection.ExecuteAsync("DELETE FROM Sessions WHERE TokenHash = @tokenHash", new { tokenHash }).ConfigureAwait(false);
+            return null;
+        }
+
         await connection.ExecuteAsync(
             "UPDATE Sessions SET LastActivityAt = @lastActivityAt WHERE TokenHash = @tokenHash",
-            new { tokenHash, lastActivityAt = Format(lastActivityAt) }).ConfigureAwait(false);
+            new { tokenHash, lastActivityAt = Format(now) }).ConfigureAwait(false);
+        return new User(row.Id, row.Name, row.Email, row.PasswordHash, row.Role);
     }
 
     public async Task DeleteForUserAsync(long userId, CancellationToken cancellationToken)
@@ -71,4 +91,6 @@ public sealed class SessionRepository(DbConnectionFactory connectionFactory)
     private static DateTimeOffset Parse(string value) => DateTimeOffset.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
     private sealed record SessionRow(string TokenHash, long UserId, string CreatedAt, string LastActivityAt);
+
+    private sealed record ActiveSessionRow(string LastActivityAt, long Id, string Name, string Email, string PasswordHash, string Role);
 }

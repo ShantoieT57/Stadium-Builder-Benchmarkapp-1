@@ -1,9 +1,11 @@
+using System.Net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Logging;
 using StadiumBuilderBenchmarkapp1.Database;
+using StadiumBuilderBenchmarkapp1.Security;
 using StadiumBuilderBenchmarkapp1.Services.TransactionImportApi;
 
 namespace StadiumBuilderBenchmarkapp1.Tests.Support;
@@ -47,6 +49,17 @@ public sealed class TransactionImportApiFixture : IAsyncDisposable
 
     public HttpClient Client => _client ?? throw new InvalidOperationException("The fixture has not been started.");
 
+    /// <summary>
+    /// A client whose requests reach the API from the given remote address, e.g. to simulate
+    /// a reverse proxy in front of it. The caller disposes it.
+    /// </summary>
+    public HttpClient CreateClientFrom(IPAddress remoteAddress)
+    {
+        var server = (_app ?? throw new InvalidOperationException("The fixture has not been started.")).GetTestServer();
+        var handler = server.CreateHandler(context => context.Connection.RemoteIpAddress = remoteAddress);
+        return new HttpClient(handler) { BaseAddress = server.BaseAddress };
+    }
+
     public async Task StartAsync()
     {
         await new DatabaseMigrator(_connectionFactory, LoggerFactory.CreateLogger<DatabaseMigrator>()).MigrateAsync(CancellationToken.None);
@@ -80,6 +93,7 @@ public sealed class TransactionImportApiFixture : IAsyncDisposable
     {
         var seeder = new UserSeeder(
             new UserRepository(_connectionFactory),
+            new PasswordHasher(),
             LoggerFactory.CreateLogger<UserSeeder>());
         return seeder.SeedAsync(CancellationToken.None);
     }

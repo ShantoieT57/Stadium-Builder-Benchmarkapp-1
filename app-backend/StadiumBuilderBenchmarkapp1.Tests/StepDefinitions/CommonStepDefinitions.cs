@@ -75,7 +75,7 @@ public sealed class CommonStepDefinitions(TransactionImportApiFixture fixture, S
     public async Task SendLoginAsync(string jsonBody) =>
         await SendAsync(HttpMethod.Post, "/api/auth/login", new StringContent(jsonBody, Encoding.UTF8, "application/json"));
 
-    public async Task SendAsync(HttpMethod method, string path, HttpContent? content = null)
+    public async Task SendAsync(HttpMethod method, string path, HttpContent? content = null, HttpClient? client = null)
     {
         using var request = new HttpRequestMessage(method, path) { Content = content };
         if (state.SessionToken is not null)
@@ -83,7 +83,7 @@ public sealed class CommonStepDefinitions(TransactionImportApiFixture fixture, S
             request.Headers.Add(HeaderNames.Cookie, new CookieHeaderValue(SessionCookieName, state.SessionToken).ToString());
         }
 
-        state.LastResponse = await fixture.Client.SendAsync(request);
+        state.LastResponse = await (client ?? fixture.Client).SendAsync(request);
         state.LastResponseBody = await state.LastResponse.Content.ReadAsStringAsync();
 
         var sessionCookie = GetSessionSetCookie(state.LastResponse);

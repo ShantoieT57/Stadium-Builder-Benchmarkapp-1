@@ -6,7 +6,7 @@ using StadiumBuilderBenchmarkapp1.Security;
 
 namespace StadiumBuilderBenchmarkapp1.Services.TransactionImportApi;
 
-public sealed class Controller(UserRepository users, SessionStore sessions, PasswordHasher passwordHasher) : ControllerBase
+public sealed class Controller(UserRepository users, SessionStore sessions, PasswordHasher passwordHasher, SessionCookie sessionCookie) : ControllerBase
 {
     private const string InvalidCredentialsMessage = "Invalid email or password";
     private const string MissingCredentialsMessage = "Email and password are required";
@@ -28,7 +28,7 @@ public sealed class Controller(UserRepository users, SessionStore sessions, Pass
         }
 
         var token = await sessions.CreateAsync(user.Id, cancellationToken).ConfigureAwait(false);
-        SessionCookie.Write(Response, token);
+        sessionCookie.Write(Response, token);
         return ToCurrentUser(user.Name, user.Email, user.Role);
     }
 
@@ -46,7 +46,7 @@ public sealed class Controller(UserRepository users, SessionStore sessions, Pass
         {
             await sessions.EndAllForOwnerAsync(token, cancellationToken).ConfigureAwait(false);
         }
-        SessionCookie.Clear(Response);
+        sessionCookie.Clear(Response);
         return NoContent();
     }
 

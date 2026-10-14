@@ -31,28 +31,12 @@ public sealed class SessionStore(SessionRepository sessions, TimeProvider timePr
     }
 
     /// <summary>
-    /// Returns the live session for the token and records this use as activity. Returns null
-    /// when there is no such session or it has been idle too long (an expired session is removed).
+    /// Returns the owner of the live session for the token and records this use as activity.
+    /// Returns null when there is no such session or it has been idle too long (an expired
+    /// session is removed).
     /// </summary>
-    public async Task<SessionRecord?> UseAsync(string token, CancellationToken cancellationToken)
-    {
-        var tokenHash = HashToken(token);
-        var session = await sessions.FindAsync(tokenHash, cancellationToken).ConfigureAwait(false);
-        if (session is null)
-        {
-            return null;
-        }
-
-        var now = timeProvider.GetUtcNow();
-        if (now - session.LastActivityAt > IdleTimeout)
-        {
-            await sessions.DeleteAsync(tokenHash, cancellationToken).ConfigureAwait(false);
-            return null;
-        }
-
-        await sessions.UpdateLastActivityAsync(tokenHash, now, cancellationToken).ConfigureAwait(false);
-        return session with { LastActivityAt = now };
-    }
+    public Task<User?> UseAsync(string token, CancellationToken cancellationToken) =>
+        sessions.UseAsync(HashToken(token), timeProvider.GetUtcNow(), IdleTimeout, cancellationToken);
 
     /// <summary>
     /// Ends every session of the person who owns the token. Does nothing if the token does

@@ -6,7 +6,7 @@ namespace StadiumBuilderBenchmarkapp1.Database;
 /// One-shot startup step that creates the ready-to-use people if they do not exist yet.
 /// Safe to run on every start.
 /// </summary>
-public sealed class UserSeeder(UserRepository users, ILogger<UserSeeder> logger)
+public sealed class UserSeeder(UserRepository users, PasswordHasher passwordHasher, ILogger<UserSeeder> logger)
 {
     private const string SeedPassword = "Test123";
 
@@ -16,13 +16,17 @@ public sealed class UserSeeder(UserRepository users, ILogger<UserSeeder> logger)
         ("Approver User", "approver@digiata.com", "Approver"),
     ];
 
-    private readonly PasswordHasher _passwordHasher = new();
-
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
         foreach (var (name, email, role) in SeedUsers)
         {
-            var inserted = await users.InsertIfMissingAsync(name, email, _passwordHasher.Hash(SeedPassword), role, cancellationToken)
+            // Hashing is deliberately slow, so only do it for a person who is not there yet.
+            if (await users.FindByEmailAsync(email, cancellationToken).ConfigureAwait(false) is not null)
+            {
+                continue;
+            }
+
+            var inserted = await users.InsertIfMissingAsync(name, email, passwordHasher.Hash(SeedPassword), role, cancellationToken)
                 .ConfigureAwait(false);
             if (inserted)
             {
