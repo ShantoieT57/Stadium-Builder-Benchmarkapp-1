@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Info, X } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { IconButton } from '@/components/ui/icon-button';
 import { SIGNED_OUT_REASON } from '@/lib/auth/session-events';
 
@@ -21,22 +22,21 @@ export function SignedOutNotice() {
   }
 
   return (
-    <div
-      role="status"
-      className="flex items-start gap-2 rounded-md border bg-muted px-3 py-2 text-sm"
-    >
-      <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
-      <p className="flex-1">
-        You&apos;ve been signed out. This happens after 60 minutes without
-        activity or when you sign in somewhere else. Please sign in again.
-      </p>
+    <Alert role="status" className="bg-muted pr-10">
+      <Info aria-hidden />
+      <AlertDescription className="text-foreground">
+        <p>
+          You&apos;ve been signed out. This happens after 60 minutes without
+          activity or when you sign in somewhere else. Please sign in again.
+        </p>
+      </AlertDescription>
       <IconButton
         label="Dismiss message"
         icon={<X aria-hidden />}
         size="icon-sm"
-        className="-my-1 shrink-0"
+        className="absolute top-2 right-2"
         onClick={() => setDismissed(true)}
       />
-    </div>
+    </Alert>
   );
 }
