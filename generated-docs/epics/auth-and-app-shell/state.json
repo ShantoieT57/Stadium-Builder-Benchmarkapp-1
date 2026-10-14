@@ -15,7 +15,8 @@
       "Confirm the app name: the header and browser tab say 'Transaction Import'. Tell me if you prefer a different product name.",
       "Check the signed-out message wording: 'You've been signed out. This happens after 60 minutes without activity or when you sign in somewhere else. Please sign in again.'",
       "Check the no-access wording: 'You don't have access to this screen' / 'If you need to use it, ask your administrator to change your role.'",
-      "Warning messages are treated like problems (they stay until closed), not like success messages (which fade). Is that right?"
+      "Warning messages are treated like problems (they stay until closed), not like success messages (which fade). Is that right?",
+      "Several tabs open: signing out yourself takes the other tabs to a plain sign-in page; an idle sign-out takes them to sign-in with the 'You've been signed out' message. Is that what you want?"
     ],
     "manualTestResults": []
   },

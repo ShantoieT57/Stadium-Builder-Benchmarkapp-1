@@ -40,6 +40,7 @@ export async function apiClient<T = unknown>(
     lastChangedUser,
     isBinaryResponse,
     requiresAuth,
+    trackSession = true,
     ...fetchConfig
   } = config;
 
@@ -69,7 +70,7 @@ export async function apiClient<T = unknown>(
     logResponse(response);
 
     // Let the signed-in frame track idle time and session loss (BR3).
-    reportApiResponse(response.status);
+    if (trackSession) reportApiResponse(response.status);
 
     // Handle specific error status codes
     if (!response.ok) {

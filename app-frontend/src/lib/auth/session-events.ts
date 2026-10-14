@@ -7,13 +7,19 @@
  * - `unauthorized`: the API answered 401 — the session is gone (idle timeout or
  *   a newer sign-in elsewhere).
  * - `signed-out`: the person chose Sign out in another tab of this browser.
+ * - `session-ended`: another tab of this browser ended the session without the
+ *   person choosing to (the shared idle hour ran out there).
  *
  * Cross-tab sharing uses localStorage (a last-activity timestamp and a sign-out
  * marker) plus the `storage` event, which the browser fires in every OTHER tab.
  * Storage access is guarded: when it is unavailable (private modes, tests) the
  * tab falls back to its own in-memory activity time.
  */
-export type SessionEvent = 'activity' | 'unauthorized' | 'signed-out';
+export type SessionEvent =
+  | 'activity'
+  | 'unauthorized'
+  | 'signed-out'
+  | 'session-ended';
 
 type SessionEventListener = (event: SessionEvent) => void;
 
@@ -31,6 +37,9 @@ export const LAST_ACTIVITY_STORAGE_KEY = 'session:last-activity';
 
 /** localStorage key written when the person signs out in any tab. */
 export const SIGN_OUT_STORAGE_KEY = 'session:signed-out';
+
+/** Suffix on the sign-out marker when the session ended on idle timeout. */
+const SESSION_ENDED_MARKER = ':session-ended';
 
 const listeners = new Set<SessionEventListener>();
 
@@ -62,7 +71,11 @@ function onStorage(event: StorageEvent): void {
   if (event.key === LAST_ACTIVITY_STORAGE_KEY && event.newValue !== null) {
     emit('activity');
   } else if (event.key === SIGN_OUT_STORAGE_KEY && event.newValue !== null) {
-    emit('signed-out');
+    emit(
+      event.newValue.endsWith(SESSION_ENDED_MARKER)
+        ? 'session-ended'
+        : 'signed-out',
+    );
   }
 }
 
@@ -103,9 +116,14 @@ export function reportApiResponse(status: number): void {
 }
 
 /**
- * Tell the other tabs of this browser that the person signed out, so they
- * leave the signed-in frame too (BR3: sign-out ends the sign-in everywhere).
+ * Tell the other tabs of this browser that the session is over, so they leave
+ * the signed-in frame too (BR3: sign-out ends the sign-in everywhere).
+ * `sessionEnded` marks a sign-out the person did not choose (idle timeout), so
+ * the other tabs show the "signed out" message as well.
  */
-export function reportSignedOut(): void {
-  writeStorage(SIGN_OUT_STORAGE_KEY, String(Date.now()));
+export function reportSignedOut(sessionEnded = false): void {
+  writeStorage(
+    SIGN_OUT_STORAGE_KEY,
+    `${Date.now()}${sessionEnded ? SESSION_ENDED_MARKER : ''}`,
+  );
 }

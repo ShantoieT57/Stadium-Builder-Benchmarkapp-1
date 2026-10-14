@@ -49,10 +49,12 @@ type SessionState =
  * Session loss (BR3): a 401 from any API call after the person was signed in
  * (idle timeout or a newer sign-in elsewhere) sends them to sign-in with a
  * "signed out" message. Only successful requests restart the 60-minute idle
- * timer; when it runs out the person is sent to sign-in without a click.
- * The idle hour is shared by every tab of the browser (the server session is
- * shared): a request in any tab postpones every tab's timeout, and signing out
- * in one tab sends the others to sign-in too.
+ * timer; when it runs out the server session is ended (POST /api/auth/logout,
+ * so the cookie cannot re-enter the app) and the person is sent to sign-in
+ * without a click. The idle hour is shared by every tab of the browser (the
+ * server session is shared): a request in any tab postpones every tab's
+ * timeout, and signing out (or timing out) in one tab sends the others to
+ * sign-in too.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -84,13 +86,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const onSessionMissing = useEffectEvent(() =>
     sendToSignIn(wasSignedIn.current),
   );
-  const onIdleTimeout = useEffectEvent(() => sendToSignIn(true));
+  // The shared idle hour ran out: end the server session too — the server may
+  // still consider the cookie valid — then leave with the "signed out" notice.
+  // The redirect never waits on, or depends on, the sign-out request: a network
+  // failure or a 401 (the server already expired it) changes nothing here.
+  // logout() is not counted as activity and its 401 raises no session event.
+  const onIdleTimeout = useEffectEvent(() => {
+    if (leaving.current || signingOutRef.current) return;
+    void logout().catch(() => undefined);
+    reportSignedOut(true);
+    sendToSignIn(true);
+  });
   const onUnauthorized = useEffectEvent(() => {
     if (wasSignedIn.current && !signingOutRef.current) sendToSignIn(true);
   });
   // The person chose Sign out in another tab: leave quietly, as this tab would.
-  const onSignedOutElsewhere = useEffectEvent(() => {
-    if (!signingOutRef.current) sendToSignIn();
+  // Another tab timed the session out: leave with the "signed out" notice.
+  const onSignedOutElsewhere = useEffectEvent((sessionEnded: boolean) => {
+    if (!signingOutRef.current) sendToSignIn(sessionEnded);
   });
 
   // Every API response (in this tab or another tab of the browser) is seen
@@ -118,9 +131,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     const unsubscribe = onSessionEvent((event) => {
       if (event === 'activity') {
         scheduleIdleCheck();
-      } else if (event === 'signed-out') {
+      } else if (event === 'signed-out' || event === 'session-ended') {
         clearIdleTimer();
-        onSignedOutElsewhere();
+        onSignedOutElsewhere(event === 'session-ended');
       } else {
         onUnauthorized();
       }

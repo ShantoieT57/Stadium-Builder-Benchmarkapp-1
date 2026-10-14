@@ -219,6 +219,19 @@ describe('Epic auth-and-app-shell, Story 5: idle hour shared across tabs', () =>
     act(() => reportApiResponse(200));
   }
 
+  /** Whether this tab asked the server to end the session (POST /api/auth/logout). */
+  function logoutCalls(): number {
+    return (apiClient as ReturnType<typeof vi.fn>).mock.calls.filter(
+      ([endpoint]) =>
+        typeof endpoint === 'string' && endpoint.endsWith('/api/auth/logout'),
+    ).length;
+  }
+
+  /** Every destination this tab was sent to, in order. */
+  function destinations(): unknown[] {
+    return routerReplace.mock.calls.map(([destination]) => destination);
+  }
+
   it("activity in another tab postpones this tab's idle sign-out", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     await renderSignedInShell();
@@ -235,15 +248,57 @@ describe('Epic auth-and-app-shell, Story 5: idle hour shared across tabs', () =>
       vi.advanceTimersByTime(20 * MINUTE + 30_000);
     });
     expect(routerReplace).not.toHaveBeenCalled();
+    // The server session is left alone while another tab keeps it in use.
+    expect(logoutCalls()).toBe(0);
     expect(
       screen.getByRole('heading', { name: 'Dashboard' }),
     ).toBeInTheDocument();
 
-    // A full hour after the last activity in any tab: signed out with the notice.
+    // A full hour after the last activity in any tab: the server session is
+    // ended and the person is signed out with the notice.
     act(() => {
       vi.advanceTimersByTime(40 * MINUTE);
     });
-    expect(routerReplace).toHaveBeenCalledWith(SIGNED_OUT_SIGN_IN_ROUTE);
+    expect(logoutCalls()).toBe(1);
+    expect(destinations()).toEqual([SIGNED_OUT_SIGN_IN_ROUTE]);
+  });
+
+  it('ends the server session when the idle hour runs out, even if sign-out fails', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await renderSignedInShell();
+    // The server already expired the session: sign-out answers 401.
+    (apiClient as ReturnType<typeof vi.fn>).mockImplementation(
+      (endpoint: unknown) =>
+        typeof endpoint === 'string' && endpoint.endsWith('/api/auth/logout')
+          ? Promise.reject({ message: 'Unauthorized', statusCode: 401 })
+          : Promise.reject({ message: 'Not Found', statusCode: 404 }),
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(60 * MINUTE + 30_000);
+    });
+
+    expect(logoutCalls()).toBe(1);
+    // Signing out is not activity and its 401 is not a "session lost" signal.
+    expect(apiClient).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/auth\/logout$/),
+      expect.objectContaining({ method: 'POST', trackSession: false }),
+    );
+    expect(destinations()).toEqual([SIGNED_OUT_SIGN_IN_ROUTE]);
+    // Other tabs of this browser leave with the "signed out" notice too.
+    expect(window.localStorage.getItem(SIGN_OUT_STORAGE_KEY)).toMatch(
+      /session-ended$/,
+    );
+
+    // The failed sign-out settles without a second redirect (e.g. to the
+    // "session expired" sign-in page).
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(destinations()).toEqual([SIGNED_OUT_SIGN_IN_ROUTE]);
+    expect(
+      screen.queryByRole('heading', { name: 'Dashboard' }),
+    ).not.toBeInTheDocument();
   });
 
   it('re-checks the shared activity time when its own timer runs out', async () => {
@@ -260,6 +315,7 @@ describe('Epic auth-and-app-shell, Story 5: idle hour shared across tabs', () =>
       vi.advanceTimersByTime(10 * MINUTE + 30_000);
     });
     expect(routerReplace).not.toHaveBeenCalled();
+    expect(logoutCalls()).toBe(0);
 
     act(() => {
       vi.advanceTimersByTime(50 * MINUTE);
@@ -283,5 +339,22 @@ describe('Epic auth-and-app-shell, Story 5: idle hour shared across tabs', () =>
     expect(
       screen.queryByRole('heading', { name: 'Dashboard' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('another tab timing the session out sends this tab to sign-in with the notice', async () => {
+    await renderSignedInShell();
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: SIGN_OUT_STORAGE_KEY,
+          newValue: `${Date.now()}:session-ended`,
+        }),
+      );
+    });
+
+    expect(routerReplace).toHaveBeenCalledWith(SIGNED_OUT_SIGN_IN_ROUTE);
+    // That tab already ended the server session.
+    expect(logoutCalls()).toBe(0);
   });
 });

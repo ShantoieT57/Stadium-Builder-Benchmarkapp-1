@@ -47,10 +47,13 @@ export async function getCurrentUser(): Promise<CurrentUser> {
 /**
  * POST /api/auth/logout - Sign out. Always succeeds (safe when already signed out).
  * Returns void for 204 No Content; the `session` cookie is cleared by the server.
+ * Not counted as session activity: signing out must not restart the idle hour
+ * (in this or any other tab), and its 401 is not a "session lost" signal.
  */
 export async function logout(): Promise<void> {
   return apiClient<void>('/api/auth/logout', {
     ...SESSION_CREDENTIALS,
     method: 'POST',
+    trackSession: false,
   });
 }

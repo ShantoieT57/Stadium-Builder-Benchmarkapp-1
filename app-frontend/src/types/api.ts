@@ -47,6 +47,13 @@ export interface APIRequestConfig extends RequestInit {
   requiresAuth?: boolean;
   lastChangedUser?: string; // For audit trails - remove if not needed
   isBinaryResponse?: boolean; // Flag to indicate response should be treated as binary data
+  /**
+   * When false, the response is NOT reported to the session tracker: a success
+   * does not restart the idle hour and a 401 does not signal a lost session.
+   * Used by sign-out, whose response says nothing about an ongoing session.
+   * Defaults to true.
+   */
+  trackSession?: boolean;
 }
 
 /**
