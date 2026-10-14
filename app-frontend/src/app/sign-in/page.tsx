@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { isAPIError } from '@/lib/api/errors';
 import { login } from '@/lib/api/endpoints';
 import { homeRouteFor } from '@/lib/auth/roles';
 import { emailSchema } from '@/lib/validation/schemas';
-import type { APIError } from '@/types/api';
 
 type Field = 'email' | 'password';
 type FieldErrors = Partial<Record<Field, string>>;
@@ -31,15 +31,6 @@ function validateField(field: Field, value: string): string | undefined {
   }
   // Password: presence only. Sign-in must not enforce password-creation rules.
   return undefined;
-}
-
-function isAPIError(error: unknown): error is APIError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    'statusCode' in error
-  );
 }
 
 /** Map a sign-in failure to user-facing copy (BR2: never say which detail was wrong). */

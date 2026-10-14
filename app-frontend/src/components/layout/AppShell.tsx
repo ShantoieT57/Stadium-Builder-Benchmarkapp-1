@@ -15,6 +15,7 @@ import { NoAccess } from '@/components/auth/NoAccess';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
 import { useToast } from '@/contexts/ToastContext';
+import { isAPIError } from '@/lib/api/errors';
 import { getCurrentUser, logout } from '@/lib/api/endpoints';
 import { canAccessRoute, isRouteActive, navItemsFor } from '@/lib/auth/roles';
 import {
@@ -29,11 +30,7 @@ export const SIGN_IN_ROUTE = '/sign-in';
 const APP_NAME = 'Transaction Import';
 
 function statusCodeOf(error: unknown): number | undefined {
-  if (typeof error === 'object' && error !== null && 'statusCode' in error) {
-    const { statusCode } = error as { statusCode?: unknown };
-    return typeof statusCode === 'number' ? statusCode : undefined;
-  }
-  return undefined;
+  return isAPIError(error) ? error.statusCode : undefined;
 }
 
 type SessionState =

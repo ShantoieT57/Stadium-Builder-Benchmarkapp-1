@@ -72,7 +72,6 @@ export interface ToastContainerProps {
  * Default toast configuration values
  */
 export const TOAST_DEFAULTS = {
-  DURATION: 5000, // 5 seconds — auto-dismiss time for messages that fade
   /**
    * Default duration per variant when showToast gets no `duration`.
    * Success/info fade after a few seconds; problems (error/warning) stay
