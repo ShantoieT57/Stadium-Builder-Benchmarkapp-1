@@ -19,7 +19,9 @@ import { isAPIError } from '@/lib/api/errors';
 import { getCurrentUser, logout } from '@/lib/api/endpoints';
 import { canAccessRoute, isRouteActive, navItemsFor } from '@/lib/auth/roles';
 import {
+  getLastActivityAt,
   onSessionEvent,
+  reportSignedOut,
   SESSION_IDLE_TIMEOUT_MS,
   SIGNED_OUT_SIGN_IN_ROUTE,
 } from '@/lib/auth/session-events';
@@ -48,6 +50,9 @@ type SessionState =
  * (idle timeout or a newer sign-in elsewhere) sends them to sign-in with a
  * "signed out" message. Only successful requests restart the 60-minute idle
  * timer; when it runs out the person is sent to sign-in without a click.
+ * The idle hour is shared by every tab of the browser (the server session is
+ * shared): a request in any tab postpones every tab's timeout, and signing out
+ * in one tab sends the others to sign-in too.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -83,20 +88,39 @@ export function AppShell({ children }: { children: ReactNode }) {
   const onUnauthorized = useEffectEvent(() => {
     if (wasSignedIn.current && !signingOutRef.current) sendToSignIn(true);
   });
+  // The person chose Sign out in another tab: leave quietly, as this tab would.
+  const onSignedOutElsewhere = useEffectEvent(() => {
+    if (!signingOutRef.current) sendToSignIn();
+  });
 
-  // Every API response is seen here: a success restarts the 60-minute idle
-  // timer, a 401 ends the session. Mouse/keyboard input deliberately does not
-  // count as activity (BR3, resolved design choice).
+  // Every API response (in this tab or another tab of the browser) is seen
+  // here: a success restarts the 60-minute idle timer, a 401 ends the session.
+  // Mouse/keyboard input deliberately does not count as activity (BR3,
+  // resolved design choice).
   useEffect(() => {
     let idleTimer: ReturnType<typeof setTimeout> | null = null;
     const clearIdleTimer = () => {
       if (idleTimer !== null) clearTimeout(idleTimer);
       idleTimer = null;
     };
+    // Wait until an hour after the latest activity in ANY tab; when the timer
+    // fires, re-check in case another tab was active meanwhile.
+    const scheduleIdleCheck = () => {
+      clearIdleTimer();
+      const remaining =
+        getLastActivityAt() + SESSION_IDLE_TIMEOUT_MS - Date.now();
+      if (remaining <= 0) {
+        onIdleTimeout();
+        return;
+      }
+      idleTimer = setTimeout(scheduleIdleCheck, remaining);
+    };
     const unsubscribe = onSessionEvent((event) => {
       if (event === 'activity') {
+        scheduleIdleCheck();
+      } else if (event === 'signed-out') {
         clearIdleTimer();
-        idleTimer = setTimeout(() => onIdleTimeout(), SESSION_IDLE_TIMEOUT_MS);
+        onSignedOutElsewhere();
       } else {
         onUnauthorized();
       }
@@ -172,6 +196,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         return;
       }
     }
+    // Sign the other tabs of this browser out too (BR3).
+    reportSignedOut();
     // Drop the signed-in frame before leaving so Back cannot reveal it.
     sendToSignIn();
   };

@@ -25,3 +25,7 @@
 - An Approver who opens the Upload screen from a saved link now sees "You don't have access to this screen" inside the app, with the menu still there, and is told to ask their administrator.
 - Success messages now fade after about 5 seconds, while problem messages stay until closed. The close button shows its label on hover and on keyboard focus.
 - Test fix accepted by the orchestrator: the story-5 AC-5 Vitest blurred the wrong element before tabbing (focus was left on the trigger button). Changed to blur `document.activeElement`; the assertion (label shows on keyboard focus) is unchanged.
+
+## Epic-end code review follow-ups
+
+- Story 5 fix: the 60-minute idle sign-out now looks at activity in every open tab of the browser, not just the current one. If you're working in one tab, a tab you left idle won't sign you out. Signing out in one tab also takes the other open tabs back to the sign-in screen.

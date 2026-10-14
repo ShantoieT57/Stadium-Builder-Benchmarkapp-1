@@ -24,9 +24,42 @@
  */
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider, useToast } from '@/contexts/ToastContext';
 import { ToastContainer } from '@/components/toast/ToastContainer';
+import { AppShell } from '@/components/layout/AppShell';
+import { apiClient, get, post } from '@/lib/api/client';
+import {
+  LAST_ACTIVITY_STORAGE_KEY,
+  reportApiResponse,
+  SIGN_OUT_STORAGE_KEY,
+  SIGNED_OUT_SIGN_IN_ROUTE,
+} from '@/lib/auth/session-events';
+import { userInfoFor } from '@/mocks/data/identity';
+
+// Only the cross-tab session tests render the app frame; the message tests
+// above use the real toast system and make no API calls.
+vi.mock('@/lib/api/client', () => ({
+  apiClient: vi.fn(),
+  get: vi.fn(),
+  post: vi.fn(),
+  put: vi.fn(),
+  del: vi.fn(),
+}));
+
+const routerReplace = vi.hoisted(() => vi.fn());
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: routerReplace,
+    refresh: vi.fn(),
+    back: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => '/dashboard',
+  useSearchParams: () => new URLSearchParams(),
+  redirect: vi.fn(),
+}));
 
 /**
  * Test driver: buttons that raise messages through the real useToast() hook, so the
@@ -132,5 +165,123 @@ describe('Epic auth-and-app-shell, Story 5: on-screen messages', () => {
     expect(
       await screen.findByRole('tooltip', { name: 'Dismiss notification' }),
     ).toBeVisible();
+  });
+});
+
+const MINUTE = 60 * 1000;
+
+/** Another tab of the same browser records a successful request at `now`. */
+function activityInAnotherTab(): void {
+  const value = String(Date.now());
+  window.localStorage.setItem(LAST_ACTIVITY_STORAGE_KEY, value);
+  // The browser fires `storage` only in the OTHER tabs — i.e. in this one.
+  window.dispatchEvent(
+    new StorageEvent('storage', {
+      key: LAST_ACTIVITY_STORAGE_KEY,
+      newValue: value,
+    }),
+  );
+}
+
+describe('Epic auth-and-app-shell, Story 5: idle hour shared across tabs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    const user = userInfoFor('Importer', { name: 'Thandi Mokoena' });
+    const respond = (endpoint: unknown) => {
+      if (typeof endpoint === 'string' && endpoint.endsWith('/api/auth/me')) {
+        return Promise.resolve(user);
+      }
+      return Promise.reject({ message: 'Not Found', statusCode: 404 });
+    };
+    (apiClient as ReturnType<typeof vi.fn>).mockImplementation(respond);
+    (get as ReturnType<typeof vi.fn>).mockImplementation(respond);
+    (post as ReturnType<typeof vi.fn>).mockImplementation(respond);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    window.localStorage.clear();
+  });
+
+  async function renderSignedInShell() {
+    render(
+      <ToastProvider>
+        <AppShell>
+          <h1>Dashboard</h1>
+        </AppShell>
+      </ToastProvider>,
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Dashboard' }),
+    ).toBeInTheDocument();
+    // This tab's own successful request (the API client reports it).
+    act(() => reportApiResponse(200));
+  }
+
+  it("activity in another tab postpones this tab's idle sign-out", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await renderSignedInShell();
+
+    // 40 minutes idle here, while the person works in another tab.
+    act(() => {
+      vi.advanceTimersByTime(40 * MINUTE);
+    });
+    act(() => activityInAnotherTab());
+
+    // 60 minutes after THIS tab's last request — but only 20 after the other
+    // tab's: still signed in.
+    act(() => {
+      vi.advanceTimersByTime(20 * MINUTE + 30_000);
+    });
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('heading', { name: 'Dashboard' }),
+    ).toBeInTheDocument();
+
+    // A full hour after the last activity in any tab: signed out with the notice.
+    act(() => {
+      vi.advanceTimersByTime(40 * MINUTE);
+    });
+    expect(routerReplace).toHaveBeenCalledWith(SIGNED_OUT_SIGN_IN_ROUTE);
+  });
+
+  it('re-checks the shared activity time when its own timer runs out', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    await renderSignedInShell();
+
+    act(() => {
+      vi.advanceTimersByTime(50 * MINUTE);
+    });
+    // Another tab's request was recorded, but no storage event reached this tab.
+    window.localStorage.setItem(LAST_ACTIVITY_STORAGE_KEY, String(Date.now()));
+
+    act(() => {
+      vi.advanceTimersByTime(10 * MINUTE + 30_000);
+    });
+    expect(routerReplace).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(50 * MINUTE);
+    });
+    expect(routerReplace).toHaveBeenCalledWith(SIGNED_OUT_SIGN_IN_ROUTE);
+  });
+
+  it('signing out in another tab sends this tab to sign-in', async () => {
+    await renderSignedInShell();
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: SIGN_OUT_STORAGE_KEY,
+          newValue: String(Date.now()),
+        }),
+      );
+    });
+
+    expect(routerReplace).toHaveBeenCalledWith('/sign-in');
+    expect(
+      screen.queryByRole('heading', { name: 'Dashboard' }),
+    ).not.toBeInTheDocument();
   });
 });
