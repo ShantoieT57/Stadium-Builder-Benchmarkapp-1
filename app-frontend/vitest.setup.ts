@@ -106,3 +106,15 @@ if (typeof Headers === 'undefined') {
     }
   } as unknown as typeof Headers;
 }
+
+// jsdom has no ResizeObserver; Radix popper-based primitives (Shadcn Tooltip,
+// Popover, Select content) measure their anchor with it. A no-op stub is enough
+// for jsdom — layout is never asserted here (real positioning is covered by
+// Playwright in a real browser).
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}

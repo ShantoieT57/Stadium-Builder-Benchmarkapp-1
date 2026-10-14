@@ -1,8 +1,13 @@
 'use client';
 
-import { useId, useState, type ComponentProps, type ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 type IconButtonProps = Omit<
   ComponentProps<typeof Button>,
@@ -15,68 +20,40 @@ type IconButtonProps = Omit<
 };
 
 /**
- * Icon-only button whose label appears (role="tooltip") while it is pointed at
- * or has keyboard focus. A native `title` is not enough — browsers never show
- * it on focus.
+ * Icon-only button whose label appears in a Shadcn Tooltip (role="tooltip")
+ * while it is pointed at or has keyboard focus. A native `title` is not
+ * enough — browsers never show it on focus.
+ *
+ * Carries its own zero-delay TooltipProvider so it works wherever it is
+ * rendered (header, toasts, sign-in notice) without an app-root provider.
+ * `disableHoverableContent`: the label is not interactive, so it closes as
+ * soon as the pointer leaves the button (GN-03: hidden on unhover).
  */
 export function IconButton({
   label,
   icon,
   size = 'icon',
   variant = 'ghost',
-  className,
-  onMouseEnter,
-  onMouseLeave,
-  onFocus,
-  onBlur,
   ...props
 }: IconButtonProps) {
-  const tooltipId = useId();
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const showLabel = hovered || focused;
-
   return (
-    <span className="relative inline-flex">
-      <Button
-        type="button"
-        variant={variant}
-        size={size}
-        aria-label={label}
-        aria-describedby={showLabel ? tooltipId : undefined}
-        className={className}
-        onMouseEnter={(event) => {
-          setHovered(true);
-          onMouseEnter?.(event);
-        }}
-        onMouseLeave={(event) => {
-          setHovered(false);
-          onMouseLeave?.(event);
-        }}
-        onFocus={(event) => {
-          setFocused(true);
-          onFocus?.(event);
-        }}
-        onBlur={(event) => {
-          setFocused(false);
-          onBlur?.(event);
-        }}
-        {...props}
-      >
-        {icon}
-      </Button>
-      {showLabel && (
-        <span
-          id={tooltipId}
-          role="tooltip"
-          className={cn(
-            'pointer-events-none absolute top-full left-1/2 z-50 mt-1 -translate-x-1/2',
-            'whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md',
-          )}
-        >
+    <TooltipProvider delayDuration={0} disableHoverableContent>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant={variant}
+            size={size}
+            aria-label={label}
+            {...props}
+          >
+            {icon}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" sideOffset={4}>
           {label}
-        </span>
-      )}
-    </span>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

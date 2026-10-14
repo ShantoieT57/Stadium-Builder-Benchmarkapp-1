@@ -11,7 +11,8 @@
 | NoAccess | app-frontend/src/components/auth/NoAccess.tsx | In-shell "you don't have access" screen naming who to ask (not an error page) |
 | SignedOutNotice | app-frontend/src/components/auth/SignedOutNotice.tsx | Dismissable sign-in-screen message shown for ?reason=signed-out |
 | onSessionEvent, reportApiResponse, reportSignedOut, getLastActivityAt, SESSION_IDLE_TIMEOUT_MS, SIGNED_OUT_SIGN_IN_ROUTE | app-frontend/src/lib/auth/session-events.ts | API-client → app bus: 2xx = activity, 401 = unauthorized, other-tab sign-out = signed-out; last activity shared across tabs via localStorage + storage event (guarded); idle timeout constant; signed-out sign-in route |
-| IconButton | app-frontend/src/components/ui/icon-button.tsx | Icon-only button with aria-label + role="tooltip" label on hover/focus (GN-03) |
+| IconButton | app-frontend/src/components/ui/icon-button.tsx | Icon-only button with aria-label + Shadcn Tooltip label on hover/focus (GN-03); self-contained zero-delay TooltipProvider |
+| Tooltip (Shadcn) | app-frontend/src/components/ui/tooltip.tsx | Radix tooltip primitives (Tooltip, TooltipTrigger, TooltipContent, TooltipProvider) |
 | login, getCurrentUser, logout | app-frontend/src/lib/api/endpoints.ts | Auth API calls with session cookie (credentials: 'include') |
 | apiClient (error parsing) | app-frontend/src/lib/api/client.ts | APIError.details carries the backend `{ message }` (or legacy `Messages[]`); network failure → statusCode 0; reports every response status to session-events |
 | ToastProvider/useToast, ToastContainer, TOAST_DEFAULTS | app-frontend/src/contexts/ToastContext.tsx, app-frontend/src/components/toast/, app-frontend/src/types/toast.ts | Shared messages: default duration by variant (success/info fade after 5s; error/warning stay until dismissed); single timer in the provider; dismiss via IconButton |
