@@ -30,3 +30,4 @@
 
 - Story 5 fix: the 60-minute idle sign-out now looks at activity in every open tab of the browser, not just the current one. If you're working in one tab, a tab you left idle won't sign you out. Signing out in one tab also takes the other open tabs back to the sign-in screen.
 - Story 4 fix: the menu button and the message close buttons now use the standard Shadcn tooltip for their hover/focus labels instead of a custom one. Nothing changes for users: the label still appears straight away on hover or keyboard focus and disappears when you move away.
+- Story 3 fix: the red used for errors was a bit too light to read easily on the pale-red error box (WCAG needs 4.5:1; it was about 4:1). The error red is darker across the app, and the sign-in error message now uses the standard Alert component. Wrong-password and connection-problem messages are easier to read, and future error boxes get the same styling.

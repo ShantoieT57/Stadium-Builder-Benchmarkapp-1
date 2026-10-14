@@ -2,7 +2,9 @@
 
 import { Suspense, useId, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { CircleAlert } from 'lucide-react';
 import { SignedOutNotice } from '@/components/auth/SignedOutNotice';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -125,12 +127,10 @@ export default function SignInPage() {
             </Suspense>
 
             {formError && (
-              <div
-                role="alert"
-                className="rounded-md border border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              >
-                {formError}
-              </div>
+              <Alert variant="destructive">
+                <CircleAlert aria-hidden />
+                <AlertDescription>{formError}</AlertDescription>
+              </Alert>
             )}
 
             <div className="flex flex-col gap-2">
