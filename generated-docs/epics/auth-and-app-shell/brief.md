@@ -85,3 +85,4 @@ Infrastructure requirements delivered by this epic (from the epic goal):
 - `app-backend/` is currently a .NET hosted-service shell (Twenty57.Builder.ApplicationRuntime Runner), not an HTTP API; it must be converted.
 - No design exists; styling defaults come from project.md (light theme, `#2563eb`). Status shown as words, never colour alone (FS-03) for later epics.
 - The smoke test for `GET /api/auth/me` was deferred in project.md; verify once the backend is live.
+- **Decision (stories approval, 2026-10-14). What counts as "activity" for SI-06:** only actions that reach the app (a request to the back end, such as loading a screen, saving or approving) restart the 60-minute window. Mouse and keyboard input alone does not. The browser also runs a 60-minute timer and returns the person to sign-in at the hour without a click. The back end is the authority and answers an expired session with 401.

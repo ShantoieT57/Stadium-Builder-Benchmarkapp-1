@@ -5,12 +5,22 @@
     "name": "Sign-in and App Shell",
     "createdAt": "2026-10-14T07:11:05.770Z",
     "dependsOn": [],
-    "introducesSharedSurface": false,
-    "unverifiedAssumptions": [],
+    "introducesSharedSurface": true,
+    "unverifiedAssumptions": [
+      "Verify signing in actually keeps you signed in: the app assumes the session cookie the back end sets still works when it passes through the front end's same-address forwarding, which depends on the cookie's settings in local development without https. If it doesn't, sign-in will look successful and then bounce you straight back to the sign-in screen.",
+      "Verify the menu and landing screen match your role: the app assumes the back end reports the role spelled exactly 'Importer' or 'Approver', alongside your name and email. If the wording or field differs, you may land on the wrong screen or see an empty or wrong menu.",
+      "Verify being signed out elsewhere sends you to sign-in: the app assumes the back end answers a timed-out or replaced session with a plain 'not signed in' reply. If it answers differently, the first browser may show an error message instead of returning you to sign-in."
+    ],
     "manualTestResults": []
   },
-  "phase": "PLAN",
-  "stories": {},
+  "phase": "BUILD",
+  "stories": {
+    "1": { "status": "pending", "commit": null, "e2eStatus": "deferred", "startedAt": null, "completedAt": null },
+    "2": { "status": "pending", "commit": null, "e2eStatus": "deferred", "startedAt": null, "completedAt": null },
+    "3": { "status": "pending", "commit": null, "e2eStatus": "deferred", "startedAt": null, "completedAt": null },
+    "4": { "status": "pending", "commit": null, "e2eStatus": "deferred", "startedAt": null, "completedAt": null },
+    "5": { "status": "pending", "commit": null, "e2eStatus": "deferred", "startedAt": null, "completedAt": null }
+  },
   "halt": null,
-  "lastUpdated": "2026-10-14T07:11:05.770Z"
+  "lastUpdated": "2026-10-14T07:30:00.000Z"
 }
