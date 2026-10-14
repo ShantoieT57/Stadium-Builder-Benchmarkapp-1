@@ -5,9 +5,8 @@ import { ToastContainer } from '@/components/toast/ToastContainer';
 import { MockProvider } from '@/components/MockProvider';
 
 export const metadata: Metadata = {
-  title: 'Next.js Application Template',
-  description:
-    'A template for building Next.js applications with external REST APIs',
+  title: 'Transaction Import',
+  description: 'Import, check and approve daily bank transaction files',
 };
 
 export default function RootLayout({
@@ -19,9 +18,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <ToastProvider>
-          <main className="min-h-screen">
+          <div className="min-h-screen">
             <MockProvider>{children}</MockProvider>
-          </main>
+          </div>
           <ToastContainer />
         </ToastProvider>
       </body>

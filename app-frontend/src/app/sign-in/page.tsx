@@ -116,7 +116,7 @@ export default function SignInPage() {
       : undefined;
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-8">
+    <main className="flex min-h-screen items-center justify-center px-4 py-8">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <h1 className="text-2xl font-semibold">Sign in</h1>
@@ -198,6 +198,6 @@ export default function SignInPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

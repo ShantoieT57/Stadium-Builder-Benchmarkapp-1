@@ -11,7 +11,8 @@
       "Verify the menu and landing screen match your role: the app assumes the back end reports the role spelled exactly 'Importer' or 'Approver', alongside your name and email. If the wording or field differs, you may land on the wrong screen or see an empty or wrong menu.",
       "Verify being signed out elsewhere sends you to sign-in: the app assumes the back end answers a timed-out or replaced session with a plain 'not signed in' reply. If it answers differently, the first browser may show an error message instead of returning you to sign-in.",
       "Verify signing in through the app reaches the real back end: the front end forwards everything under /api/ to http://localhost:8042/api/ unchanged. With the back end running and mock mode off, signing in should work end to end.",
-      "Check the connection-problem wording is OK: \"We can't reach the app right now. Check your connection and try again.\""
+      "Check the connection-problem wording is OK: \"We can't reach the app right now. Check your connection and try again.\"",
+      "Confirm the app name: the header and browser tab say 'Transaction Import'. Tell me if you prefer a different product name."
     ],
     "manualTestResults": []
   },
@@ -20,7 +21,7 @@
     "1": { "status": "halted", "blockedReason": "Built and green (22 Gherkin scenarios) but UNCOMMITTED: user chose to do the CLAUDE.backend.md manual test once the sign-in front-end exists. Commit only after the user confirms manual testing; story 2 (backend) cannot start until then.", "commit": null, "e2eStatus": "deferred", "startedAt": "2026-10-14T07:32:00.000Z", "completedAt": null },
     "2": { "status": "pending", "commit": null, "e2eStatus": "deferred", "startedAt": null, "completedAt": null },
     "3": { "status": "complete", "commit": null, "e2eStatus": "deferred", "startedAt": "2026-10-14T08:05:00.000Z", "completedAt": "2026-10-14T08:12:00.000Z" },
-    "4": { "status": "in-progress", "commit": null, "e2eStatus": "deferred", "startedAt": "2026-10-14T08:13:00.000Z", "completedAt": null },
+    "4": { "status": "complete", "commit": null, "e2eStatus": "deferred", "startedAt": "2026-10-14T08:13:00.000Z", "completedAt": "2026-10-14T08:20:00.000Z" },
     "5": { "status": "pending", "commit": null, "e2eStatus": "deferred", "startedAt": null, "completedAt": null }
   },
   "halt": null,
