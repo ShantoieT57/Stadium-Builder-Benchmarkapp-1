@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": ".NET: Launch StadiumBuilderBenchmarkapp1",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/app-backend/StadiumBuilderBenchmarkapp1/bin/Debug/net10.0/StadiumBuilderBenchmarkapp1.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/app-backend/StadiumBuilderBenchmarkapp1",
+      "stopAtEntry": false,
+      "env": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  ]
+}
