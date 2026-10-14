@@ -12,6 +12,9 @@ public sealed class ScenarioState
     /// <summary>The session token value the "browser" currently holds, if any.</summary>
     public string? SessionToken { get; set; }
 
+    /// <summary>Session tokens remembered by name, e.g. one per simulated browser.</summary>
+    public Dictionary<string, string> RememberedSessions { get; } = new(StringComparer.Ordinal);
+
     public HttpResponseMessage Response =>
         LastResponse ?? throw new InvalidOperationException("No request has been sent in this scenario yet.");
 }

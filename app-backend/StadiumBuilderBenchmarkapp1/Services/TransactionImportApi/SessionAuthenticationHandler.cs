@@ -9,7 +9,8 @@ namespace StadiumBuilderBenchmarkapp1.Services.TransactionImportApi;
 
 /// <summary>
 /// Authenticates requests from the session cookie by looking the session up in the
-/// server-side <see cref="SessionStore"/>. Unauthenticated requests get a bare 401.
+/// server-side <see cref="SessionStore"/> (which also applies the idle timeout and records the
+/// request as activity). Unauthenticated requests get a bare 401.
 /// </summary>
 public sealed class SessionAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -29,7 +30,7 @@ public sealed class SessionAuthenticationHandler(
             return AuthenticateResult.NoResult();
         }
 
-        var session = await sessions.FindAsync(token, Context.RequestAborted).ConfigureAwait(false);
+        var session = await sessions.UseAsync(token, Context.RequestAborted).ConfigureAwait(false);
         var user = session is null ? null : await users.FindByIdAsync(session.UserId, Context.RequestAborted).ConfigureAwait(false);
         if (user is null)
         {

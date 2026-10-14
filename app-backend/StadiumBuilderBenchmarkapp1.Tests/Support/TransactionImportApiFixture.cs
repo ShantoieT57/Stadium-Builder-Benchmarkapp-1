@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Logging;
 using StadiumBuilderBenchmarkapp1.Database;
@@ -38,6 +39,12 @@ public sealed class TransactionImportApiFixture : IAsyncDisposable
 
     public ILoggerFactory LoggerFactory { get; }
 
+    /// <summary>The clock the API sees. Scenarios advance it to simulate idle time.</summary>
+    public ManualTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 1, 1, 8, 0, 0, TimeSpan.Zero));
+
+    /// <summary>The path of the test-only operation guarded by the named authorisation policy.</summary>
+    public static string PolicyProbePath(string policy) => $"/test/policies/{policy}";
+
     public HttpClient Client => _client ?? throw new InvalidOperationException("The fixture has not been started.");
 
     public async Task StartAsync()
@@ -50,12 +57,23 @@ public sealed class TransactionImportApiFixture : IAsyncDisposable
         builder.Logging.ClearProviders();
         builder.Logging.SetMinimumLevel(LogLevel.Trace);
         builder.Logging.AddProvider(Logs);
-        Service.ConfigureServices(builder.Services, Settings, TimeProvider.System);
+        Service.ConfigureServices(builder.Services, Settings, Clock);
 
         _app = builder.Build();
         Service.ConfigurePipeline(_app, pathBase: "");
+        MapPolicyProbeEndpoints(_app);
         await _app.StartAsync();
         _client = _app.GetTestClient();
+    }
+
+    // Test-only operations that exist purely to prove the role policies; production
+    // endpoints attach the same policies in later epics.
+    private static void MapPolicyProbeEndpoints(WebApplication app)
+    {
+        foreach (var policy in new[] { RolePolicies.ImporterOnly, RolePolicies.ApproverOnly })
+        {
+            app.MapGet(PolicyProbePath(policy), () => Results.Ok()).RequireAuthorization(policy);
+        }
     }
 
     public Task RunUserSeedingAsync()

@@ -4,9 +4,17 @@ using StadiumBuilderBenchmarkapp1.Tests.Support;
 namespace StadiumBuilderBenchmarkapp1.Tests.StepDefinitions;
 
 [Binding]
-public sealed class LogoutStepDefinitions(CommonStepDefinitions common, ScenarioState state)
+public sealed class LogoutStepDefinitions(CommonStepDefinitions common, ScenarioState state, TransactionImportApiFixture fixture)
 {
     private string? _tokenBeforeSignOut;
+
+    [Given("{string} also has a stored session {string}")]
+    public async Task GivenAlsoHasAStoredSession(string email, string name)
+    {
+        var token = Guid.NewGuid().ToString("N");
+        await fixture.Database.InsertSessionAsync(email, token, fixture.Clock.GetUtcNow());
+        state.RememberedSessions[name] = token;
+    }
 
     [When("I sign out")]
     public async Task WhenISignOut()

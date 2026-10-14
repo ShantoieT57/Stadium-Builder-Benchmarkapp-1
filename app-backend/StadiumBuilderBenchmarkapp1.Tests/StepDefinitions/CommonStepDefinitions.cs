@@ -23,8 +23,22 @@ public sealed class CommonStepDefinitions(TransactionImportApiFixture fixture, S
     [Given("my session cookie is {string}")]
     public void GivenMySessionCookieIs(string token) => state.SessionToken = token;
 
+    [Given("I remember this session as {string}")]
+    public void GivenIRememberThisSessionAs(string name) =>
+        state.RememberedSessions[name] = state.SessionToken ?? throw new InvalidOperationException("There is no current session.");
+
+    [When("{int} minutes pass")]
+    public void WhenMinutesPass(int minutes) => fixture.Clock.Advance(TimeSpan.FromMinutes(minutes));
+
     [When("I ask who is signed in")]
     public Task WhenIAskWhoIsSignedIn() => SendAsync(HttpMethod.Get, "/api/auth/me");
+
+    [When("I ask who is signed in using the session {string}")]
+    public Task WhenIAskWhoIsSignedInUsingTheSession(string name)
+    {
+        state.SessionToken = state.RememberedSessions[name];
+        return WhenIAskWhoIsSignedIn();
+    }
 
     [Then("the response status code is {int}")]
     public void ThenTheResponseStatusCodeIs(int statusCode) =>
@@ -46,6 +60,10 @@ public sealed class CommonStepDefinitions(TransactionImportApiFixture fixture, S
         using var document = JsonDocument.Parse(state.LastResponseBody);
         Assert.Equal(message, document.RootElement.GetProperty("message").GetString());
     }
+
+    [Then("{string} has no stored sessions")]
+    public async Task ThenHasNoStoredSessions(string email) =>
+        Assert.Equal(0, await fixture.Database.CountSessionsAsync(email));
 
     [Then("the logs do not contain {string}")]
     public void ThenTheLogsDoNotContain(string text)

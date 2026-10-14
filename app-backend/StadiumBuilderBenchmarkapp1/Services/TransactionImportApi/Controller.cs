@@ -44,7 +44,7 @@ public sealed class Controller(UserRepository users, SessionStore sessions, Pass
         var token = SessionCookie.Read(Request);
         if (token is not null)
         {
-            await sessions.EndAsync(token, cancellationToken).ConfigureAwait(false);
+            await sessions.EndAllForOwnerAsync(token, cancellationToken).ConfigureAwait(false);
         }
         SessionCookie.Clear(Response);
         return NoContent();

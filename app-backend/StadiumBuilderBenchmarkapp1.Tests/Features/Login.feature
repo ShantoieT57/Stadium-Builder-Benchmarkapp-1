@@ -1,6 +1,7 @@
 Feature: Sign in
     POST /api/auth/login signs a person in with their email and password and
-    starts a server-side session carried in an HTTP-only cookie.
+    starts a server-side session carried in an HTTP-only cookie, ending any
+    earlier session of the same person.
 
 Scenario Outline: A seeded person signs in with the correct email and password
     When I sign in with email "<email>" and password "Test123"
@@ -49,3 +50,20 @@ Scenario: Credentials never appear in the logs or error messages
     And I sign in with email "approver@digiata.com" and password "Test123"
     Then the logs do not contain "Wrong-Secret-42"
     And the logs do not contain "Test123"
+
+Scenario: Signing in again ends the person's earlier session
+    Given I am signed in as "fileimporter@digiata.com"
+    And I remember this session as "first browser"
+    And I am signed in as "fileimporter@digiata.com"
+    And I remember this session as "second browser"
+    When I ask who is signed in using the session "first browser"
+    Then the response status code is 401
+    When I ask who is signed in using the session "second browser"
+    Then the response status code is 200
+
+Scenario: Signing in does not end other people's sessions
+    Given I am signed in as "approver@digiata.com"
+    And I remember this session as "approver browser"
+    And I am signed in as "fileimporter@digiata.com"
+    When I ask who is signed in using the session "approver browser"
+    Then the response status code is 200

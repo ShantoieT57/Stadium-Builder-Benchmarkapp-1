@@ -88,7 +88,10 @@ public sealed class Service(AppSettings settings, IHostEnvironment environment, 
         services.AddAuthentication(SessionAuthenticationHandler.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(SessionAuthenticationHandler.SchemeName, null);
         services.AddAuthorization(options =>
-            options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+        {
+            options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+            options.AddRolePolicies();
+        });
     }
 
     public static void ConfigurePipeline(WebApplication app, string pathBase)

@@ -8,6 +8,18 @@ info:
     Authentication uses a server-side session carried in an HTTP-only cookie
     named `session` (SameSite=Lax). The cookie is issued by `POST /api/auth/login`
     and must be sent with every authenticated request.
+
+    Session rules:
+    - A session that has had no authenticated request for more than 60 minutes
+      expires and is refused with 401, exactly like having no session. Every
+      successful authenticated request restarts the 60 minutes.
+    - A person has at most one active session: signing in ends every earlier
+      session of that person.
+    - Signing out ends every session of the signed-in person.
+
+    Role rules: operations restricted to a role (`Importer` or `Approver`) return
+    401 when there is no valid session and 403 when the signed-in person does not
+    have the required role (see the `Unauthorized` and `Forbidden` responses).
 servers:
   - url: http://localhost:8042
     description: Local development
@@ -22,8 +34,9 @@ paths:
       summary: Sign in with email and password.
       description: |
         On success a new server-side session is created and its opaque token is set in
-        the HTTP-only `session` cookie. A wrong email or a wrong password both return
-        401 with the message "Invalid email or password". Email matching is case-insensitive.
+        the HTTP-only `session` cookie. Every earlier session of the same person is ended.
+        A wrong email or a wrong password both return 401 with the message
+        "Invalid email or password". Email matching is case-insensitive.
       security: []
       requestBody:
         required: true
@@ -70,20 +83,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/CurrentUser'
         '401':
-          description: No valid session.
+          $ref: '#/components/responses/Unauthorized'
   /api/auth/logout:
     post:
       tags: [Auth]
       operationId: Logout
       summary: Sign out.
       description: |
-        Ends the session identified by the `session` cookie (if any) and clears the cookie.
+        Ends every session of the person signed in with the `session` cookie (if any),
+        not only the current one, and clears the cookie.
         Always succeeds, so it is safe to call when already signed out.
       security: []
       responses:
         '204':
           description: Signed out. The `session` cookie is cleared.
 components:
+  responses:
+    Unauthorized:
+      description: |
+        No valid session: no `session` cookie, an unknown or ended session, or a session
+        idle for more than 60 minutes.
+    Forbidden:
+      description: |
+        Signed in, but the person's role is not allowed to perform this operation.
   securitySchemes:
     sessionCookie:
       type: apiKey
